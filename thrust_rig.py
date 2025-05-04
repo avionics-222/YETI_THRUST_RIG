@@ -46,9 +46,9 @@ BAMOCAR_RESPONSE_ID = 0x181  # BAMOCAR Response ID
 
 # ESC Parameter Registers
 RPM_REGISTER = 0x30       # RPM register address
-VOLTAGE_REGISTER = 0x90   # Voltage register address (replace with correct value)
+VOLTAGE_REGISTER = 	0xEB   # Voltage register address (replace with correct value)
 CURRENT_REGISTER = 0x20   # Current register address (replace with correct value)
-TEMP_REGISTER = 0xA0      # Temperature register address (replace with correct value)
+TEMP_REGISTER = 0x49      # MOTOR Temperature register address (replace with correct value)
 
 # Conversion factors
 RPM_CONVERSION = 0.091547146780592
