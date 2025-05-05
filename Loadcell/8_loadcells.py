@@ -78,32 +78,38 @@ def main():
     try:
         while True:
             readings = {}
+            # Wait for data from all queues
             for i, q in enumerate(queues):
-                while not q.empty():
-                    idx, weight, raw = q.get()
-                    readings[idx] = (weight, raw)
-            
-            if readings:
+                data_received = False
+                while not data_received:
+                    if not q.empty():
+                        idx, weight, raw = q.get()
+                        readings[idx] = (weight, raw)
+                        data_received = True
+                    else:
+                        time.sleep(0.01)  # Small delay to avoid busy-waiting
+
+            # Ensure all 8 readings are available
+            if len(readings) == len(load_cells_config):
                 print("\n===== LOADCELL READINGS =====")
                 for i in range(len(load_cells_config)):
-                    if i in readings:
-                        weight, raw = readings[i]
-                        label = load_cell_labels[i]
-                        weight_kg = weight / 1000.0  # Convert from g to kg
-                        
-                        if i < 4:  # Thrust loadcells (0-3)
-                            thrust = weight_kg * 9.8  # Thrust in Newtons
-                            print(f"[{label}] Raw: {raw:.2f}, Weight: {weight:.2f} g, Thrust: {thrust:.2f} N")
-                        else:      # Torque loadcells (4-7)
-                            torque = weight_kg * 9.8 * R  # Torque in Nm
-                            print(f"[{label}] Raw: {raw:.2f}, Weight: {weight:.2f} g, Torque: {torque:.2f} Nm")
-                
+                    weight, raw = readings[i]
+                    label = load_cell_labels[i]
+                    weight_kg = weight / 1000.0  # Convert from g to kg
+
+                    if i < 4:  # Thrust loadcells (0-3)
+                        thrust = weight_kg * 9.8  # Thrust in Newtons
+                        print(f"[{label}] Weight: {weight:.2f} g, Thrust: {thrust:.2f} N")
+                    else:      # Torque loadcells (4-7)
+                        torque = weight_kg * 9.8 * R  # Torque in Nm
+                        print(f"[{label}] Weight: {weight:.2f} g, Torque: {torque:.2f} Nm")
+
                 # Calculate and display the total thrust and torque
-                total_thrust = sum([(readings[i][0] / 1000.0) * 9.8 for i in range(4) if i in readings])
-                total_torque = sum([(readings[i][0] / 1000.0) * 9.8 * R for i in range(4, 8) if i in readings])
+                total_thrust = sum([(readings[i][0] / 1000.0) * 9.8 for i in range(4)])
+                total_torque = sum([(readings[i][0] / 1000.0) * 9.8 * R for i in range(4, 8)])
                 print(f"\nTotal Thrust: {total_thrust:.2f} N")
                 print(f"Total Torque: {total_torque:.2f} Nm")
-                
+
             time.sleep(0.1)
 
     except KeyboardInterrupt:
