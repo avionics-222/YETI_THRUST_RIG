@@ -36,33 +36,31 @@ calibration_factors = [
 ]
 
 # Radius for torque calculation in meters
-R = 0.1  # Replace with your actual radius value
+R = 0.1
 
 # CAN Configuration
 CAN_INTERFACE = "can0"
 BITRATE = 500000
-BAMOCAR_ID = 0x201  # BAMOCAR Receive ID
-BAMOCAR_RESPONSE_ID = 0x181  # BAMOCAR Response ID
+BAMOCAR_ID = 0x201
+BAMOCAR_RESPONSE_ID = 0x181
 
 # ESC Parameter Registers
-RPM_REGISTER = 0x30       # RPM register address
-VOLTAGE_REGISTER = 	0xEB   # Voltage register address (replace with correct value)
-CURRENT_REGISTER = 0x20   # Current register address (replace with correct value)
-TEMP_REGISTER = 0x49      # MOTOR Temperature register address (replace with correct value)
+RPM_REGISTER = 0x30
+VOLTAGE_REGISTER = 0xEB
+CURRENT_REGISTER = 0x20
+TEMP_REGISTER = 0x49
 
 # Conversion factors
 RPM_CONVERSION = 0.091547146780592
-VOLTAGE_CONVERSION = 0.1  # Replace with actual conversion factor
-CURRENT_CONVERSION = 0.1  # Replace with actual conversion factor
-TEMP_CONVERSION = 0.1     # Replace with actual conversion factor
+VOLTAGE_CONVERSION = 0.1
+CURRENT_CONVERSION = 0.1
+TEMP_CONVERSION = 0.1
 
 def is_can_interface_up():
-    """Check if the CAN interface is already up."""
     result = os.popen(f"ip link show {CAN_INTERFACE}").read()
     return "<UP," in result
 
 def setup_can_interface():
-    """Set up the CAN interface if not already up."""
     if is_can_interface_up():
         print(f"CAN interface {CAN_INTERFACE} is already up.")
     else:
@@ -70,7 +68,6 @@ def setup_can_interface():
         os.system(f"sudo ip link set {CAN_INTERFACE} up type can bitrate {BITRATE}")
 
 def set_process_affinity(process_id, core_id):
-    """Set which CPU core a process runs on"""
     try:
         os.sched_setaffinity(process_id, {core_id})
         print(f"Process {process_id} assigned to core {core_id}")
@@ -78,7 +75,6 @@ def set_process_affinity(process_id, core_id):
         print(f"Error setting affinity: {e}")
 
 def loadcell_worker(dout, sck, q, index, offset, calibration_factor, stop_event):
-    """Worker process for reading from a load cell"""
     hx = HX711(dout, sck)
     hx.offset = offset
     hx.calibration_factor = calibration_factor
@@ -89,13 +85,11 @@ def loadcell_worker(dout, sck, q, index, offset, calibration_factor, stop_event)
         time.sleep(0.2)
 
 def can_worker(param_register, param_name, param_conversion, result_queue, stop_event):
-    """Worker process for reading a specific parameter from the ESC via CAN"""
     setup_can_interface()
     bus = can.interface.Bus(channel=CAN_INTERFACE, interface="socketcan")
     
     try:
         while not stop_event.is_set():
-            # Send request to read the parameter
             msg = can.Message(
                 arbitration_id=BAMOCAR_ID, 
                 data=[0x3D, param_register, 0x64], 
@@ -103,7 +97,6 @@ def can_worker(param_register, param_name, param_conversion, result_queue, stop_
             )
             bus.send(msg)
             
-            # Wait for response
             start_time = time.time()
             while time.time() - start_time < 1.0 and not stop_event.is_set():
                 message = bus.recv(timeout=0.1)
@@ -115,40 +108,32 @@ def can_worker(param_register, param_name, param_conversion, result_queue, stop_
                         result_queue.put((param_name, value))
                         break
             
-            time.sleep(0.2)  # Delay between requests
+            time.sleep(0.2)
     
     finally:
         bus.shutdown()
 
+def formatted_loadcell_output(label, weight, thrust_or_torque, unit):
+    return f"{label:<15} | Weight: {weight:>10.2f} g | {unit}: {thrust_or_torque:>10.2f} {'N' if unit == 'Thrust' else 'Nm'}"
+
 def main():
-    # Set up stop event for clean shutdown
     stop_event = Event()
-    
-    # Set up queues for loadcells and CAN parameters
     loadcell_queues = []
     can_queue = Queue()
-    
-    # Start loadcell processes (8 processes)
     loadcell_processes = []
+    
     for i, config in enumerate(load_cells_config):
         q = Queue()
         loadcell_queues.append(q)
-        offset = hardcoded_offsets[i]
-        cal_factor = calibration_factors[i]
-        
         p = Process(
             target=loadcell_worker, 
-            args=(config['dout'], config['sck'], q, i, offset, cal_factor, stop_event)
+            args=(config['dout'], config['sck'], q, i, hardcoded_offsets[i], calibration_factors[i], stop_event)
         )
         p.start()
-        
-        # Assign loadcell processes to cores 0 and 1 (4 processes per core)
         core_id = 0 if i < 4 else 1
         set_process_affinity(p.pid, core_id)
-        
         loadcell_processes.append(p)
     
-    # Start CAN parameter processes (4 processes)
     can_processes = []
     can_parameters = [
         (RPM_REGISTER, "RPM", RPM_CONVERSION),
@@ -163,14 +148,10 @@ def main():
             args=(register, name, conversion, can_queue, stop_event)
         )
         p.start()
-        
-        # Assign CAN processes to cores 2 and 3 (2 processes per core)
         core_id = 2 if i < 2 else 3
         set_process_affinity(p.pid, core_id)
-        
         can_processes.append(p)
     
-    # Dictionary to store the latest CAN parameter values
     can_values = {
         "RPM": 0,
         "Voltage": 0,
@@ -180,76 +161,64 @@ def main():
     
     try:
         while True:
-            # Process loadcell data
             loadcell_readings = {}
             for i, q in enumerate(loadcell_queues):
-                while not q.empty():
-                    idx, weight, raw = q.get()
-                    loadcell_readings[idx] = (weight, raw)
-            
-            # Process CAN data
-            while not can_queue.empty():
-                param_name, value = can_queue.get()
-                can_values[param_name] = value
-            
-            # Display all data
-            if loadcell_readings:
+                data_received = False
+                while not data_received:
+                    if not q.empty():
+                        idx, weight, raw = q.get()
+                        loadcell_readings[idx] = (weight, raw)
+                        data_received = True
+                    elif stop_event.is_set():
+                        return
+                    else:
+                        time.sleep(0.01)
+
+            if len(loadcell_readings) == len(load_cells_config):
                 print("\n===== LOADCELL READINGS =====")
-                
-                # Display thrust loadcell data
                 print("--- THRUST MEASUREMENTS ---")
                 thrust_values = []
                 for i in range(4):
-                    if i in loadcell_readings:
-                        weight, raw = loadcell_readings[i]
-                        label = load_cell_labels[i]
-                        weight_kg = weight / 1000.0  # Convert from g to kg
-                        thrust = weight_kg * 9.8  # Thrust in Newtons
-                        thrust_values.append(thrust)
-                        print(f"[{label}] Raw: {raw:.2f}, Weight: {weight:.2f} g, Thrust: {thrust:.2f} N")
-                
-                # Display torque loadcell data
+                    weight, raw = loadcell_readings[i]
+                    label = load_cell_labels[i]
+                    weight_kg = weight / 1000.0
+                    thrust = weight_kg * 9.8
+                    thrust_values.append(thrust)
+                    print(formatted_loadcell_output(label, weight, thrust, "Thrust"))
+
                 print("\n--- TORQUE MEASUREMENTS ---")
                 torque_values = []
                 for i in range(4, 8):
-                    if i in loadcell_readings:
-                        weight, raw = loadcell_readings[i]
-                        label = load_cell_labels[i]
-                        weight_kg = weight / 1000.0  # Convert from g to kg
-                        torque = weight_kg * 9.8 * R  # Torque in Nm
-                        torque_values.append(torque)
-                        print(f"[{label}] Raw: {raw:.2f}, Weight: {weight:.2f} g, Torque: {torque:.2f} Nm")
-                
-                # Calculate and display total thrust and torque
-                if thrust_values:
-                    total_thrust = sum(thrust_values)
-                    print(f"\nTotal Thrust: {total_thrust:.2f} N")
-                
-                if torque_values:
-                    total_torque = sum(torque_values)
-                    print(f"Total Torque: {total_torque:.2f} Nm")
-            
-            # Display ESC data from CAN bus
+                    weight, raw = loadcell_readings[i]
+                    label = load_cell_labels[i]
+                    weight_kg = weight / 1000.0
+                    torque = weight_kg * 9.8 * R
+                    torque_values.append(torque)
+                    print(formatted_loadcell_output(label, weight, torque, "Torque"))
+
+                total_thrust = sum(thrust_values)
+                total_torque = sum(torque_values)
+                print(f"\n{'Total Thrust':<15} | {total_thrust:>10.2f} N")
+                print(f"{'Total Torque':<15} | {total_torque:>10.2f} Nm")
+
+            while not can_queue.empty():
+                param_name, value = can_queue.get()
+                can_values[param_name] = value
+
             print("\n===== ESC CONTROLLER DATA (CAN) =====")
-            print(f"RPM: {can_values['RPM']:.2f} rpm")
-            print(f"Voltage: {can_values['Voltage']:.2f} V")
-            print(f"Current: {can_values['Current']:.2f} A")
-            print(f"Temperature: {can_values['Temperature']:.2f} °C")
-            
-            # Sleep to reduce CPU usage
+            print(f"{'RPM':<15} | {can_values['RPM']:>10.2f} rpm")
+            print(f"{'Voltage':<15} | {can_values['Voltage']:>10.2f} V")
+            print(f"{'Current':<15} | {can_values['Current']:>10.2f} A")
+            print(f"{'Temperature':<15} | {can_values['Temperature']:>10.2f} °C")
             time.sleep(0.1)
     
     except KeyboardInterrupt:
         print("\nExiting...")
-        # Signal all processes to stop
         stop_event.set()
-        
-        # Wait for all processes to terminate
         for p in loadcell_processes + can_processes:
             p.join(timeout=1.0)
             if p.is_alive():
                 p.terminate()
-        
         print("All processes terminated.")
 
 if __name__ == "__main__":
