@@ -29,11 +29,15 @@ class HX711:
         data = 0
         for _ in range(24):
             self.sck.on()
+            #time.sleep(25e-6)
             self.sck.off()
+            #time.sleep(1e-6)
             data = (data << 1) | self.dout.value  # Faster bit shifting
 
         self.sck.on()
-        self.sck.off()  # 25th clock pulse
+        #time.sleep(25e-6)
+        self.sck.off()
+        #time.sleep(1e-6) # 25th clock pulse
 
         if data & 0x800000:
             data -= 0x1000000  # Convert 2's complement
