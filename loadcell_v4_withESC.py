@@ -251,7 +251,7 @@ if __name__ == "__main__":
                 print(f"Latest Weights: {latest_weights} | Total: {total_weight:.2f} Kg | Thrust: {total_weight * 9.8: .3f} N")
             if esc_data_state == 1:
                 print(f"RPM: {ESC_data_output[0]} | Torque: {ESC_data_output[1]} | M. Temp: {ESC_data_output[2]}  °C  | Current: {ESC_data_output[3]}")
-
+            print("-----------------------------------------------------------------")
             # Log data to CSV
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
             row = [timestamp]
@@ -276,3 +276,4 @@ if __name__ == "__main__":
             p.terminate()
             p.join()
         csv_file.close()
+        can_v1.clear_can_bus_buffer()
