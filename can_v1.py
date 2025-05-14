@@ -33,7 +33,25 @@ def setup_can_interface():
     else:
         print(f"Bringing up CAN interface {CAN_INTERFACE} at {BITRATE} bps...")
         os.system(f"sudo ip link set {CAN_INTERFACE} up type can bitrate {BITRATE}")
+        
+        
 
+def clear_can_bus_buffer(interface="socketcan", channel="can0", timeout=0.05):
+    try:
+        print("Clearing CAN bus buffer...")
+        """
+        with can.interface.Bus(channel=channel, interface=interface) as bus:
+            while True:
+                msg = bus.recv(timeout=timeout)
+                if msg is None:
+                    break  # Buffer is empty
+        print("CAN bus buffer cleared.")
+        """
+        os.system(f"sudo ip link set {CAN_INTERFACE} down")
+        
+    except Exception as e:
+        print(f"Error while clearing CAN buffer: {e}")
+        
 def query_can_parameter(bus, register, conversion):
     msg = can.Message(
         arbitration_id=BAMOCAR_ID,
