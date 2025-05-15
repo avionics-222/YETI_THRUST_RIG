@@ -275,40 +275,45 @@ if __name__ == "__main__":
             point = (
             Point("Weight_Data")
             .tag("Sensor", "4_Loadcell")
-            .field("Weight", round(total_weight,2)
+            .field("Weight", round(total_weight,2))
             )  
             
             point1 = (
             Point("Thrust_Data")
             .tag("Sensor", "Thrust")
-            .field("Thrust", round(total_weight * 9.8,3)
+            .field("Thrust", round(total_weight * 9.8,3))
             )  
             
-            point1 = (
+            point2 = (
             Point("RPM_Data")
             .tag("Sensor", "RPM")
-            .field("RPM", )
+            .field("RPM",ESC_data_output[0])
             )  
             
-            point1 = (
-            Point("Thrust_Data")
-            .tag("Sensor", "Thrust")
-            .field("Thrust", round(total_weight * 9.8,3)
+            point3 = (
+            Point("Torque_Data")
+            .tag("Sensor", "Torque")
+            .field("Torque", ESC_data_output[1])
             )  
             
-            point1 = (
-            Point("Thrust_Data")
-            .tag("Sensor", "Thrust")
-            .field("Thrust", round(total_weight * 9.8,3)
+            point4 = (
+            Point("Motor_Temp_Data")
+            .tag("Sensor", "M_Temp")
+            .field("Motor_Temp", ESC_data_output[2])
             )  
             
-            point1 = (
-            Point("Thrust_Data")
-            .tag("Sensor", "Thrust")
-            .field("Thrust", round(total_weight * 9.8,3)
+            point5 = (
+            Point("Current_Data")
+            .tag("Sensor", "Current")
+            .field("Current", ESC_data_output[3])
             )  
             
-            
+            write_api.write(bucket=bucket, org=org, record=point)
+            write_api.write(bucket=bucket, org=org, record=point1)
+            write_api.write(bucket=bucket, org=org, record=point2)
+            write_api.write(bucket=bucket, org=org, record=point3)
+            write_api.write(bucket=bucket, org=org, record=point4)
+            write_api.write(bucket=bucket, org=org, record=point5)
             
             # Log data to CSV
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
