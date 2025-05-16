@@ -27,7 +27,7 @@ token = 'ZdwOtVTj7kWLmHqBk_p7d3Snz1Gbt2Xm1EPNUlY96xUxhV93wtU1KWb5mBZ6ubRl8I_m-ty
 influxdb_url = "https://us-east-1-1.aws.cloud2.influxdata.com"  # InfluxDB URL
 org = "IdeaForge"  # Organization name
 
-bucket = "Thrust_Rig_Data"  # Bucket name
+bucket = "Thrust_Rig_v1"  # Bucket name
 
 # Create an InfluxDB client
 client = InfluxDBClient(url=influxdb_url, token=token)
