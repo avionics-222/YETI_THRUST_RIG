@@ -23,11 +23,11 @@ kt_value = 0.88
 nominal_rpm = 6000
 multi_rate = 0.5
 
-token = 'nEl4RchZAyQAOaPD_oIKFOyYdjOmAmxv74YGh91otKnjmELUOSPZy7m_EjjrSxdZVuIknYpeDeKUE3H_r8uT4w=='
+token = 'ZdwOtVTj7kWLmHqBk_p7d3Snz1Gbt2Xm1EPNUlY96xUxhV93wtU1KWb5mBZ6ubRl8I_m-ty0Jnxbb38Nl5nrFg=='
 influxdb_url = "https://us-east-1-1.aws.cloud2.influxdata.com"  # InfluxDB URL
 org = "IdeaForge"  # Organization name
 
-bucket = "Sensor_Data"  # Bucket name
+bucket = "Thrust_Rig_Data"  # Bucket name
 
 # Create an InfluxDB client
 client = InfluxDBClient(url=influxdb_url, token=token)
