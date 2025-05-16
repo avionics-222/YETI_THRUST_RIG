@@ -263,7 +263,7 @@ if __name__ == "__main__":
                     print(f"No data from {esc_keys[i]} for more than {TIMEOUT_SECONDS} seconds.")
                     raise TimeoutError
 
-            total_weight = sum(latest_weights) - 1.22
+            total_weight = sum(latest_weights) - 1.50
             if load_cell_state == 1:
                 print(f"Latest Weights: {latest_weights} | Total: {total_weight:.2f} Kg | Thrust: {total_weight * 9.8: .3f} N")
             if esc_data_state == 1:
