@@ -224,7 +224,7 @@ if __name__ == "__main__":
 
     # Setup CSV file
     os.makedirs("logs", exist_ok=True)
-    csv_filename = f"logs/test_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    csv_filename = f"logs/{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     csv_file = open(csv_filename, mode='w', newline='')
     csv_writer = csv.writer(csv_file)
 
@@ -294,7 +294,7 @@ if __name__ == "__main__":
                     print(f"No data from {esc_keys[i]} for more than {TIMEOUT_SECONDS} seconds.")
                     raise TimeoutError
 
-            total_weight = sum(latest_weights[0:4]) - 2.0  #Propeller + Bolt Weight ~= 2Kg
+            total_weight = sum(latest_weights[0:4]) - 2.4  # (Propeller + Mounting Plate + Bolts ) Weight ~= 2.4Kg
             
             if load_cell_state == 1:
                 print(f"Latest Weights: {latest_weights} | Total: {total_weight:.2f} Kg | Thrust: {total_weight * 9.8: .3f} N")
